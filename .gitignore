@@ -1,0 +1,22 @@
+# Build outputs
+*.exe
+*.obj
+*.pdb
+*.ilk
+*.lib
+*.exp
+*.log
+installer/
+
+# Local/generated packages
+WsjtxUdpFanout_Source.zip
+
+# User config
+WsjtxUdpFanout.ini
+
+# Editor and OS noise
+.vs/
+.vscode/
+*.user
+Thumbs.db
+Desktop.ini
