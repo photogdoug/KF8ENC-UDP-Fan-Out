@@ -7,7 +7,7 @@ Default flow:
 ```text
 WSJT-X -> 127.0.0.1:2236 -> WsjtxUdpFanout.exe
                               -> GridTracker       127.0.0.1:2237
-                              -> Hamilton Auto FT8 127.0.0.1:2238
+                              -> Logger            127.0.0.1:2238
                               -> WRL CAT Control   127.0.0.1:2239
 ```
 
