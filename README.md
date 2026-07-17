@@ -32,7 +32,7 @@ Type commands directly in the program window:
 
 ```text
 add JTSync 2249
-add "Hamilton Auto FT8" 127.0.0.1:2238
+add "GridTracker" 127.0.0.1:2238
 set JTSync 127.0.0.1:2249
 remove JTSync
 rename JTSync "JT Sync"
