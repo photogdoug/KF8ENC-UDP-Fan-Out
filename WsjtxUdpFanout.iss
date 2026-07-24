@@ -1,5 +1,5 @@
 #define MyAppName "WSJT-X UDP Fanout"
-#define MyAppVersion "1.2.0"
+#define MyAppVersion "1.3.0"
 #define MyAppPublisher "HAM Radio Tools"
 #define MyAppExeName "WsjtxUdpFanout.exe"
 
@@ -17,10 +17,12 @@ Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=lowest
+ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
+UseSetupLdr=x64
 
 [Files]
-Source: "WsjtxUdpFanout.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "publish\WsjtxUdpFanout.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "Sample_WsjtxUdpFanout.ini"; DestDir: "{app}"; Flags: ignoreversion
 Source: "Run_Default.bat"; DestDir: "{app}"; Flags: ignoreversion

@@ -54,21 +54,29 @@ Changes are saved to:
 
 ## Build
 
-Open a Visual Studio Developer Command Prompt, or run:
+Install the .NET 8 SDK, then run:
 
 ```bat
-Build_Windows_MSVC.bat
+Build_Windows_DotNet.bat
 ```
 
-The direct MSVC command is:
+The direct .NET command is:
 
 ```bat
-cl /EHsc /std:c++17 WsjtxUdpFanout.cpp ws2_32.lib /Fe:WsjtxUdpFanout.exe
+dotnet publish WsjtxUdpFanout.csproj --configuration Release --runtime win-x64 --self-contained true --output publish -p:PublishSingleFile=true
 ```
+
+This creates a self-contained, single-file executable at:
+
+```text
+publish\WsjtxUdpFanout.exe
+```
+
+The destination computer does not need the .NET runtime installed.
 
 ## Installer
 
-Install Inno Setup 6, then run:
+Install the .NET 8 SDK and Inno Setup 6, then run:
 
 ```bat
 Build_Installer_Inno.bat
