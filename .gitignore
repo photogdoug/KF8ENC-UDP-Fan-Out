@@ -1,5 +1,6 @@
 # Build outputs
 *.exe
+!downloads/*.exe
 *.obj
 *.pdb
 *.ilk
@@ -7,6 +8,12 @@
 *.exp
 *.log
 installer/
+bin/
+obj/
+publish/
+.dotnet-cli/
+tools/
+innosetup-*.exe
 
 # Local/generated packages
 WsjtxUdpFanout_Source.zip

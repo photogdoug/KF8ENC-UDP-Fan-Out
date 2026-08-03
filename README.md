@@ -1,17 +1,26 @@
 # WSJT-X UDP Fanout
 
-Windows UDP relay for WSJT-X companion programs.
+Windows desktop UDP relay for WSJT-X companion programs.
 
 Default flow:
 
 ```text
 WSJT-X -> 127.0.0.1:2236 -> WsjtxUdpFanout.exe
                               -> GridTracker       127.0.0.1:2237
-                              -> Logger            127.0.0.1:2238
+                              -> JTSync            127.0.0.1:2238
                               -> WRL CAT Control   127.0.0.1:2239
 ```
 
 The relay is bidirectional by default. It learns the WSJT-X UDP source socket from WSJT-X traffic, then relays companion-app command packets back to WSJT-X.
+
+## Download Options
+
+Choose the interface that best fits your setup:
+
+- [Windows GUI v2.0.1 installer](downloads/WsjtxUdpFanout-Windows-GUI-v2.0.1-Setup.exe) — Recommended. Standard Windows dashboard with destination management, live statistics, and no command-prompt window.
+- [Console v1.3 installer](downloads/WsjtxUdpFanout-Console-v1.3.0-Setup.exe) — Original command-prompt dashboard with typed management commands.
+
+Both installers are self-contained 64-bit Windows packages; the destination computer does not need the .NET runtime installed.
 
 ## WSJT-X Setup
 
@@ -26,25 +35,25 @@ Accept UDP requests: checked
 
 `Accept UDP requests` is required if a companion app sends commands back to WSJT-X.
 
-## Live Destination Commands
+## Windows GUI Application
 
-Type commands directly in the program window:
+The application opens as a standard Windows desktop window—there is no command prompt. From the dashboard you can:
 
-```text
-add JTSync 2249
-add "GridTracker" 127.0.0.1:2238
-set JTSync 127.0.0.1:2249
-remove JTSync
-rename JTSync "JT Sync"
-save
-load
-config
-bidirectional
-read-only
-refresh 500
-clearstats
-quit
-```
+- Start and stop the relay.
+- Switch between bidirectional and read-only modes.
+- Add, edit, or remove companion-app destinations.
+- Monitor packet counts, errors, the learned WSJT-X source, and recent events.
+- Clear traffic statistics.
+
+Destination and listener changes are saved automatically.
+
+### Dashboard
+
+![WSJT-X UDP Fanout Windows dashboard showing live traffic statistics and the default destinations](docs/images/windows-dashboard.png)
+
+### Destination Editor
+
+![Add destination dialog with name, address, and port fields](docs/images/destination-editor.png)
 
 Changes are saved to:
 
@@ -54,21 +63,27 @@ Changes are saved to:
 
 ## Build
 
-Open a Visual Studio Developer Command Prompt, or run:
+Install the .NET 8 SDK, then run:
 
 ```bat
-Build_Windows_MSVC.bat
+Build_Windows_DotNet.bat
 ```
 
-The direct MSVC command is:
+The direct .NET command is:
 
 ```bat
-cl /EHsc /std:c++17 WsjtxUdpFanout.cpp ws2_32.lib /Fe:WsjtxUdpFanout.exe
+dotnet publish WsjtxUdpFanout.csproj --configuration Release --runtime win-x64 --self-contained true --output publish -p:PublishSingleFile=true
+```
+
+This creates the current Windows GUI as a self-contained, single-file executable at:
+
+```text
+publish\WsjtxUdpFanout.exe
 ```
 
 ## Installer
 
-Install Inno Setup 6, then run:
+Install the .NET 8 SDK and Inno Setup 6, then run:
 
 ```bat
 Build_Installer_Inno.bat
@@ -79,3 +94,5 @@ The installer will be written to:
 ```text
 installer\WsjtxUdpFanoutSetup.exe
 ```
+
+Release-ready installer copies are kept in the [`downloads`](downloads/) directory with the interface and version in each filename.
