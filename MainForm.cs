@@ -29,7 +29,10 @@ internal sealed class MainForm : Form
     private readonly Label _footerConfig = new();
     private readonly DataGridView _destinationGrid = new();
     private readonly ListBox _eventList = new();
+    private readonly DestinationTrafficChart _trafficChart = new();
+    private readonly FlowLayoutPanel _trafficLegend = new();
     private readonly System.Windows.Forms.Timer _refreshTimer = new() { Interval = 400 };
+    private readonly System.Windows.Forms.Timer _trafficTimer = new() { Interval = 1000 };
     private bool _allowClose;
     private bool _settingsInitialized;
 
@@ -38,8 +41,8 @@ internal sealed class MainForm : Form
         _relay = relay;
         Text = "WSJT-X UDP Fanout";
         StartPosition = FormStartPosition.CenterScreen;
-        MinimumSize = new Size(960, 680);
-        ClientSize = new Size(1120, 760);
+        MinimumSize = new Size(960, 720);
+        ClientSize = new Size(1180, 880);
         BackColor = Page;
         Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
         AutoScaleMode = AutoScaleMode.Dpi;
@@ -51,6 +54,7 @@ internal sealed class MainForm : Form
         Shown += MainForm_Shown;
         FormClosing += MainForm_FormClosing;
         _refreshTimer.Tick += (_, _) => RefreshDashboard();
+        _trafficTimer.Tick += (_, _) => RefreshTrafficChart();
     }
 
     private void BuildInterface()
@@ -252,10 +256,13 @@ internal sealed class MainForm : Form
 
     private Control BuildDestinationsCard()
     {
-        var card = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 3, ColumnCount = 1, BackColor = Surface, Padding = new Padding(14, 12, 14, 12) };
+        var card = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 6, ColumnCount = 1, BackColor = Surface, Padding = new Padding(14, 12, 14, 12) };
         card.RowStyles.Add(new RowStyle(SizeType.Absolute, 35));
-        card.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        card.RowStyles.Add(new RowStyle(SizeType.Percent, 38));
         card.RowStyles.Add(new RowStyle(SizeType.Absolute, 43));
+        card.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
+        card.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
+        card.RowStyles.Add(new RowStyle(SizeType.Percent, 62));
 
         var heading = new Label { AutoSize = true, Text = "Destinations", Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold), ForeColor = Color.FromArgb(35, 45, 57), Margin = new Padding(0, 3, 0, 0) };
         card.Controls.Add(heading, 0, 0);
@@ -274,6 +281,27 @@ internal sealed class MainForm : Form
         clear.Click += (_, _) => _relay.ClearStatistics();
         buttons.Controls.AddRange([add, edit, remove, clear]);
         card.Controls.Add(buttons, 0, 2);
+
+        var chartHeading = new Label
+        {
+            AutoSize = true,
+            Text = "Destination traffic  ·  packets/second  ·  last 60 seconds",
+            Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold),
+            ForeColor = Color.FromArgb(55, 66, 78),
+            Margin = new Padding(0, 6, 0, 0)
+        };
+        card.Controls.Add(chartHeading, 0, 3);
+
+        _trafficLegend.Dock = DockStyle.Fill;
+        _trafficLegend.FlowDirection = FlowDirection.LeftToRight;
+        _trafficLegend.WrapContents = true;
+        _trafficLegend.Margin = Padding.Empty;
+        _trafficLegend.Padding = Padding.Empty;
+        card.Controls.Add(_trafficLegend, 0, 4);
+
+        _trafficChart.Dock = DockStyle.Fill;
+        _trafficChart.Margin = Padding.Empty;
+        card.Controls.Add(_trafficChart, 0, 5);
         return card;
     }
 
@@ -367,7 +395,9 @@ internal sealed class MainForm : Form
     {
         await _relay.StartAsync();
         RefreshDashboard();
+        RefreshTrafficChart();
         _refreshTimer.Start();
+        _trafficTimer.Start();
     }
 
     private async void MainForm_FormClosing(object? sender, FormClosingEventArgs e)
@@ -377,6 +407,7 @@ internal sealed class MainForm : Form
         e.Cancel = true;
         Enabled = false;
         _refreshTimer.Stop();
+        _trafficTimer.Stop();
         await _relay.StopAsync();
         _allowClose = true;
         Close();
@@ -521,6 +552,45 @@ internal sealed class MainForm : Form
         foreach (string item in snapshot.Events)
             _eventList.Items.Add(item);
         _eventList.EndUpdate();
+    }
+
+    private void RefreshTrafficChart()
+    {
+        RelaySnapshot snapshot = _relay.GetSnapshot();
+        _trafficChart.Sample(snapshot.Targets);
+
+        _trafficLegend.SuspendLayout();
+        _trafficLegend.Controls.Clear();
+        foreach (TrafficLegendItem item in _trafficChart.LegendItems)
+        {
+            string text = $"{item.Name}  {item.PacketsPerSecond:N0} pkt/s";
+            Size textSize = TextRenderer.MeasureText(text, Font);
+            var legendItem = new Panel
+            {
+                Width = textSize.Width + 24,
+                Height = 22,
+                Margin = new Padding(0, 0, 12, 0),
+                BackColor = Color.Transparent
+            };
+            var swatch = new Panel
+            {
+                BackColor = item.Color,
+                Size = new Size(10, 10),
+                Location = new Point(0, 5)
+            };
+            var label = new Label
+            {
+                AutoSize = true,
+                Text = text,
+                ForeColor = Color.FromArgb(70, 81, 93),
+                Font = new Font("Segoe UI", 8F),
+                Location = new Point(15, 2)
+            };
+            legendItem.Controls.Add(swatch);
+            legendItem.Controls.Add(label);
+            _trafficLegend.Controls.Add(legendItem);
+        }
+        _trafficLegend.ResumeLayout();
     }
 
     private static string FormatBytes(ulong bytes)

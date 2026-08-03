@@ -17,7 +17,7 @@ The relay is bidirectional by default. It learns the WSJT-X UDP source socket fr
 
 Choose the interface that best fits your setup:
 
-- [Windows GUI v2.0.1 installer](downloads/WsjtxUdpFanout-Windows-GUI-v2.0.1-Setup.exe) — Recommended. Standard Windows dashboard with destination management, live statistics, and no command-prompt window.
+- [Windows GUI v2.1.0 installer](downloads/WsjtxUdpFanout-Windows-GUI-v2.1.0-Setup.exe) — Recommended. Standard Windows dashboard with destination management, live statistics, and no command-prompt window.
 - [Console v1.3 installer](downloads/WsjtxUdpFanout-Console-v1.3.0-Setup.exe) — Original command-prompt dashboard with typed management commands.
 
 Both installers are self-contained 64-bit Windows packages; the destination computer does not need the .NET runtime installed.
@@ -43,6 +43,7 @@ The application opens as a standard Windows desktop window—there is no command
 - Switch between bidirectional and read-only modes.
 - Add, edit, or remove companion-app destinations.
 - Monitor packet counts, errors, the learned WSJT-X source, and recent events.
+- Compare each destination by color on a scrolling 60-second packets-per-second graph.
 - Clear traffic statistics.
 
 Destination and listener changes are saved automatically.
