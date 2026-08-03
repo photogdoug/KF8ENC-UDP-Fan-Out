@@ -1,6 +1,6 @@
 # WSJT-X UDP Fanout
 
-Windows UDP relay for WSJT-X companion programs.
+Windows desktop UDP relay for WSJT-X companion programs.
 
 Default flow:
 
@@ -12,6 +12,15 @@ WSJT-X -> 127.0.0.1:2236 -> WsjtxUdpFanout.exe
 ```
 
 The relay is bidirectional by default. It learns the WSJT-X UDP source socket from WSJT-X traffic, then relays companion-app command packets back to WSJT-X.
+
+## Download Options
+
+Choose the interface that best fits your setup:
+
+- [Windows GUI v2.0 installer](downloads/WsjtxUdpFanout-Windows-GUI-v2.0.0-Setup.exe) — Recommended. Standard Windows dashboard with destination management, live statistics, and no command-prompt window.
+- [Console v1.3 installer](downloads/WsjtxUdpFanout-Console-v1.3.0-Setup.exe) — Original command-prompt dashboard with typed management commands.
+
+Both installers are self-contained 64-bit Windows packages; the destination computer does not need the .NET runtime installed.
 
 ## WSJT-X Setup
 
@@ -26,25 +35,17 @@ Accept UDP requests: checked
 
 `Accept UDP requests` is required if a companion app sends commands back to WSJT-X.
 
-## Live Destination Commands
+## Windows GUI Application
 
-Type commands directly in the program window:
+The application opens as a standard Windows desktop window—there is no command prompt. From the dashboard you can:
 
-```text
-add JTSync 2249
-add "GridTracker" 127.0.0.1:2238
-set JTSync 127.0.0.1:2249
-remove JTSync
-rename JTSync "JT Sync"
-save
-load
-config
-bidirectional
-read-only
-refresh 500
-clearstats
-quit
-```
+- Start and stop the relay.
+- Switch between bidirectional and read-only modes.
+- Add, edit, or remove companion-app destinations.
+- Monitor packet counts, errors, the learned WSJT-X source, and recent events.
+- Clear traffic statistics.
+
+Destination and listener changes are saved automatically.
 
 Changes are saved to:
 
@@ -66,13 +67,11 @@ The direct .NET command is:
 dotnet publish WsjtxUdpFanout.csproj --configuration Release --runtime win-x64 --self-contained true --output publish -p:PublishSingleFile=true
 ```
 
-This creates a self-contained, single-file executable at:
+This creates the current Windows GUI as a self-contained, single-file executable at:
 
 ```text
 publish\WsjtxUdpFanout.exe
 ```
-
-The destination computer does not need the .NET runtime installed.
 
 ## Installer
 
@@ -87,3 +86,5 @@ The installer will be written to:
 ```text
 installer\WsjtxUdpFanoutSetup.exe
 ```
+
+Release-ready installer copies are kept in the [`downloads`](downloads/) directory with the interface and version in each filename.

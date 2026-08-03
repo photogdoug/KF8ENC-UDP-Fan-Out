@@ -1,5 +1,5 @@
 #define MyAppName "WSJT-X UDP Fanout"
-#define MyAppVersion "1.3.0"
+#define MyAppVersion "2.0.0"
 #define MyAppPublisher "HAM Radio Tools"
 #define MyAppExeName "WsjtxUdpFanout.exe"
 

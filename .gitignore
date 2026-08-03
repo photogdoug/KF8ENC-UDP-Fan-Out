@@ -1,5 +1,6 @@
 # Build outputs
 *.exe
+!downloads/*.exe
 *.obj
 *.pdb
 *.ilk
