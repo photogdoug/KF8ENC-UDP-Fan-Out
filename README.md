@@ -17,7 +17,7 @@ The relay is bidirectional by default. It learns the WSJT-X UDP source socket fr
 
 Choose the interface that best fits your setup:
 
-- [Windows GUI v2.1.0 installer](downloads/WsjtxUdpFanout-Windows-GUI-v2.1.0-Setup.exe) — Recommended. Standard Windows dashboard with destination management, live statistics, and no command-prompt window.
+- [Windows GUI v2.2.0 installer](downloads/WsjtxUdpFanout-Windows-GUI-v2.2.0-Setup.exe) — Recommended. Standard Windows dashboard with destination management, live statistics, selectable themes, and no command-prompt window.
 - [Console v1.3 installer](downloads/WsjtxUdpFanout-Console-v1.3.0-Setup.exe) — Original command-prompt dashboard with typed management commands.
 
 Both installers are self-contained 64-bit Windows packages; the destination computer does not need the .NET runtime installed.
@@ -44,13 +44,26 @@ The application opens as a standard Windows desktop window—there is no command
 - Add, edit, or remove companion-app destinations.
 - Monitor packet counts, errors, the learned WSJT-X source, and recent events.
 - Compare each destination by color on a scrolling 60-second packets-per-second graph.
+- Choose Light (default), Dark, Papirus, Nord, or Dracula from the Theme menu.
 - Clear traffic statistics.
 
-Destination and listener changes are saved automatically.
+Destination, listener, and theme changes are saved automatically.
 
 ### Dashboard
 
 ![WSJT-X UDP Fanout Windows dashboard showing live traffic statistics and the default destinations](docs/images/windows-dashboard.png)
+
+### Themes
+
+Use the Theme menu to switch the entire dashboard instantly. The selected theme is remembered for the next launch.
+
+| Light (default) | Dark |
+| --- | --- |
+| ![Light theme](docs/images/light-theme.png) | ![Dark theme](docs/images/dark-theme.png) |
+| Papirus | Nord |
+| ![Papirus theme](docs/images/papirus-theme.png) | ![Nord theme](docs/images/nord-theme.png) |
+| Dracula | |
+| ![Dracula theme](docs/images/dracula-theme.png) | |
 
 ### Destination Editor
 

@@ -7,7 +7,7 @@
     <RootNamespace>WsjtxUdpFanout</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>2.1.0</Version>
+    <Version>2.2.0</Version>
     <Authors>HAM Radio Tools</Authors>
     <Description>Bidirectional WSJT-X UDP relay for companion applications.</Description>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
@@ -23,5 +23,6 @@
     <Compile Include="RelayService.cs" />
     <Compile Include="MainForm.cs" />
     <Compile Include="DestinationTrafficChart.cs" />
+    <Compile Include="AppTheme.cs" />
   </ItemGroup>
 </Project>

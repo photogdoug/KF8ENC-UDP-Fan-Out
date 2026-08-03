@@ -7,19 +7,8 @@ internal sealed record TrafficLegendItem(string Name, Color Color, double Packet
 internal sealed class DestinationTrafficChart : Control
 {
     private const int MaximumSamples = 60;
-    private static readonly Color[] SeriesPalette =
-    [
-        Color.FromArgb(35, 103, 176),
-        Color.FromArgb(33, 145, 89),
-        Color.FromArgb(222, 132, 34),
-        Color.FromArgb(133, 85, 184),
-        Color.FromArgb(201, 68, 76),
-        Color.FromArgb(24, 139, 147),
-        Color.FromArgb(194, 83, 151),
-        Color.FromArgb(114, 93, 74)
-    ];
-
     private readonly Dictionary<Guid, TrafficSeries> _series = [];
+    private AppTheme _theme = AppThemes.Light;
     private int _nextColorIndex;
 
     public DestinationTrafficChart()
@@ -38,7 +27,18 @@ internal sealed class DestinationTrafficChart : Control
 
     public Color GetSeriesColor(Guid id) => _series.TryGetValue(id, out TrafficSeries? series)
         ? series.Color
-        : Color.FromArgb(120, 130, 140);
+        : _theme.MutedText;
+
+    public void ApplyTheme(AppTheme theme)
+    {
+        _theme = theme;
+        BackColor = theme.Surface;
+        ForeColor = theme.Text;
+        int index = 0;
+        foreach (TrafficSeries series in _series.Values)
+            series.Color = GetSeriesColor(index++);
+        Invalidate();
+    }
 
     public void Sample(IReadOnlyList<TargetSnapshot> targets)
     {
@@ -97,10 +97,10 @@ internal sealed class DestinationTrafficChart : Control
         }
         double yMaximum = NiceMaximum(Math.Max(5, totals.DefaultIfEmpty(0).Max()));
 
-        using var gridPen = new Pen(Color.FromArgb(224, 230, 236), 1);
-        using var axisPen = new Pen(Color.FromArgb(172, 182, 192), 1);
-        using var labelBrush = new SolidBrush(Color.FromArgb(105, 116, 128));
-        using var emptyBrush = new SolidBrush(Color.FromArgb(125, 136, 148));
+        using var gridPen = new Pen(_theme.ChartGrid, 1);
+        using var axisPen = new Pen(_theme.ChartAxis, 1);
+        using var labelBrush = new SolidBrush(_theme.MutedText);
+        using var emptyBrush = new SolidBrush(_theme.MutedText);
         using var labelFont = new Font("Segoe UI", 7.5F);
         using var emptyFont = new Font("Segoe UI", 9F);
 
@@ -169,9 +169,37 @@ internal sealed class DestinationTrafficChart : Control
 
     private Color NextColor()
     {
-        Color color = SeriesPalette[_nextColorIndex % SeriesPalette.Length];
+        Color color = GetSeriesColor(_nextColorIndex);
         _nextColorIndex++;
         return color;
+    }
+
+    private Color GetSeriesColor(int index)
+    {
+        if (index < _theme.SeriesColors.Count)
+            return _theme.SeriesColors[index];
+
+        double hue = (index * 137.508) % 360;
+        return ColorFromHsv(hue, 0.62, _theme.Name == "Light" ? 0.68 : 0.88);
+    }
+
+    private static Color ColorFromHsv(double hue, double saturation, double value)
+    {
+        int sector = (int)Math.Floor(hue / 60) % 6;
+        double fraction = hue / 60 - Math.Floor(hue / 60);
+        double p = value * (1 - saturation);
+        double q = value * (1 - fraction * saturation);
+        double t = value * (1 - (1 - fraction) * saturation);
+        (double r, double g, double b) = sector switch
+        {
+            0 => (value, t, p),
+            1 => (q, value, p),
+            2 => (p, value, t),
+            3 => (p, q, value),
+            4 => (t, p, value),
+            _ => (value, p, q)
+        };
+        return Color.FromArgb((int)(r * 255), (int)(g * 255), (int)(b * 255));
     }
 
     private static double NiceMaximum(double maximum)
@@ -185,7 +213,7 @@ internal sealed class DestinationTrafficChart : Control
     private sealed class TrafficSeries(string name, Color color, ulong lastPackets)
     {
         public string Name { get; set; } = name;
-        public Color Color { get; } = color;
+        public Color Color { get; set; } = color;
         public ulong LastPackets { get; set; } = lastPackets;
         public Queue<double> Samples { get; } = new();
     }

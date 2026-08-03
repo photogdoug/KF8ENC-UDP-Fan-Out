@@ -1,0 +1,190 @@
+namespace WsjtxUdpFanout;
+
+internal sealed record AppTheme(
+    string Name,
+    Color Page,
+    Color Surface,
+    Color SurfaceAlt,
+    Color Header,
+    Color HeaderText,
+    Color HeaderMuted,
+    Color Text,
+    Color MutedText,
+    Color InputBackground,
+    Color InputText,
+    Color Border,
+    Color GridHeader,
+    Color Selection,
+    Color SelectionText,
+    Color Footer,
+    Color Primary,
+    Color Success,
+    Color Danger,
+    Color Warning,
+    Color SecondaryButton,
+    Color ChartGrid,
+    Color ChartAxis,
+    IReadOnlyList<Color> SeriesColors);
+
+internal static class AppThemes
+{
+    public static readonly AppTheme Light = new(
+        "Light",
+        Color.FromArgb(243, 246, 249),
+        Color.White,
+        Color.FromArgb(248, 250, 252),
+        Color.FromArgb(25, 55, 92),
+        Color.White,
+        Color.FromArgb(202, 217, 232),
+        Color.FromArgb(35, 45, 57),
+        Color.FromArgb(95, 108, 122),
+        Color.White,
+        Color.FromArgb(35, 45, 57),
+        Color.FromArgb(211, 219, 227),
+        Color.FromArgb(235, 240, 245),
+        Color.FromArgb(220, 234, 248),
+        Color.FromArgb(30, 48, 67),
+        Color.FromArgb(230, 235, 240),
+        Color.FromArgb(35, 103, 176),
+        Color.FromArgb(33, 145, 89),
+        Color.FromArgb(190, 57, 57),
+        Color.FromArgb(218, 138, 38),
+        Color.FromArgb(89, 103, 119),
+        Color.FromArgb(224, 230, 236),
+        Color.FromArgb(172, 182, 192),
+        [
+            Color.FromArgb(35, 103, 176), Color.FromArgb(33, 145, 89),
+            Color.FromArgb(222, 132, 34), Color.FromArgb(133, 85, 184),
+            Color.FromArgb(201, 68, 76), Color.FromArgb(24, 139, 147),
+            Color.FromArgb(194, 83, 151), Color.FromArgb(114, 93, 74)
+        ]);
+
+    public static readonly AppTheme Dark = new(
+        "Dark",
+        Color.FromArgb(24, 27, 32),
+        Color.FromArgb(34, 38, 44),
+        Color.FromArgb(40, 45, 52),
+        Color.FromArgb(16, 20, 26),
+        Color.FromArgb(242, 244, 247),
+        Color.FromArgb(164, 176, 190),
+        Color.FromArgb(235, 238, 242),
+        Color.FromArgb(166, 176, 188),
+        Color.FromArgb(48, 54, 62),
+        Color.FromArgb(238, 241, 245),
+        Color.FromArgb(72, 80, 90),
+        Color.FromArgb(44, 50, 58),
+        Color.FromArgb(51, 70, 91),
+        Color.White,
+        Color.FromArgb(28, 32, 38),
+        Color.FromArgb(65, 132, 214),
+        Color.FromArgb(43, 168, 103),
+        Color.FromArgb(218, 76, 84),
+        Color.FromArgb(226, 157, 56),
+        Color.FromArgb(83, 94, 108),
+        Color.FromArgb(64, 71, 81),
+        Color.FromArgb(102, 112, 124),
+        [
+            Color.FromArgb(78, 156, 255), Color.FromArgb(58, 201, 123),
+            Color.FromArgb(255, 170, 64), Color.FromArgb(179, 128, 255),
+            Color.FromArgb(255, 107, 116), Color.FromArgb(50, 191, 204),
+            Color.FromArgb(241, 112, 194), Color.FromArgb(193, 158, 121)
+        ]);
+
+    public static readonly AppTheme Papirus = new(
+        "Papirus",
+        Color.FromArgb(38, 50, 56),
+        Color.FromArgb(55, 71, 79),
+        Color.FromArgb(62, 80, 89),
+        Color.FromArgb(27, 38, 44),
+        Color.FromArgb(236, 245, 248),
+        Color.FromArgb(164, 205, 220),
+        Color.FromArgb(236, 242, 244),
+        Color.FromArgb(176, 196, 204),
+        Color.FromArgb(69, 90, 100),
+        Color.FromArgb(240, 246, 248),
+        Color.FromArgb(91, 112, 121),
+        Color.FromArgb(61, 81, 91),
+        Color.FromArgb(44, 108, 142),
+        Color.White,
+        Color.FromArgb(31, 43, 49),
+        Color.FromArgb(66, 165, 245),
+        Color.FromArgb(38, 166, 154),
+        Color.FromArgb(239, 83, 80),
+        Color.FromArgb(255, 167, 38),
+        Color.FromArgb(84, 110, 122),
+        Color.FromArgb(72, 94, 104),
+        Color.FromArgb(125, 153, 166),
+        [
+            Color.FromArgb(66, 165, 245), Color.FromArgb(38, 166, 154),
+            Color.FromArgb(255, 167, 38), Color.FromArgb(171, 71, 188),
+            Color.FromArgb(239, 83, 80), Color.FromArgb(38, 198, 218),
+            Color.FromArgb(236, 64, 122), Color.FromArgb(141, 110, 99)
+        ]);
+
+    public static readonly AppTheme Nord = new(
+        "Nord",
+        Color.FromArgb(46, 52, 64),
+        Color.FromArgb(59, 66, 82),
+        Color.FromArgb(67, 76, 94),
+        Color.FromArgb(36, 41, 51),
+        Color.FromArgb(236, 239, 244),
+        Color.FromArgb(180, 190, 207),
+        Color.FromArgb(236, 239, 244),
+        Color.FromArgb(184, 194, 211),
+        Color.FromArgb(67, 76, 94),
+        Color.FromArgb(236, 239, 244),
+        Color.FromArgb(76, 86, 106),
+        Color.FromArgb(67, 76, 94),
+        Color.FromArgb(76, 86, 106),
+        Color.FromArgb(236, 239, 244),
+        Color.FromArgb(42, 47, 58),
+        Color.FromArgb(94, 129, 172),
+        Color.FromArgb(163, 190, 140),
+        Color.FromArgb(191, 97, 106),
+        Color.FromArgb(235, 203, 139),
+        Color.FromArgb(76, 86, 106),
+        Color.FromArgb(76, 86, 106),
+        Color.FromArgb(129, 143, 166),
+        [
+            Color.FromArgb(136, 192, 208), Color.FromArgb(163, 190, 140),
+            Color.FromArgb(235, 203, 139), Color.FromArgb(180, 142, 173),
+            Color.FromArgb(191, 97, 106), Color.FromArgb(143, 188, 187),
+            Color.FromArgb(208, 135, 112), Color.FromArgb(129, 161, 193)
+        ]);
+
+    public static readonly AppTheme Dracula = new(
+        "Dracula",
+        Color.FromArgb(40, 42, 54),
+        Color.FromArgb(68, 71, 90),
+        Color.FromArgb(61, 64, 82),
+        Color.FromArgb(30, 31, 40),
+        Color.FromArgb(248, 248, 242),
+        Color.FromArgb(189, 147, 249),
+        Color.FromArgb(248, 248, 242),
+        Color.FromArgb(189, 190, 199),
+        Color.FromArgb(54, 57, 72),
+        Color.FromArgb(248, 248, 242),
+        Color.FromArgb(98, 101, 126),
+        Color.FromArgb(55, 57, 73),
+        Color.FromArgb(98, 114, 164),
+        Color.FromArgb(248, 248, 242),
+        Color.FromArgb(35, 36, 47),
+        Color.FromArgb(189, 147, 249),
+        Color.FromArgb(80, 250, 123),
+        Color.FromArgb(255, 85, 85),
+        Color.FromArgb(241, 250, 140),
+        Color.FromArgb(98, 101, 126),
+        Color.FromArgb(80, 82, 103),
+        Color.FromArgb(120, 122, 150),
+        [
+            Color.FromArgb(139, 233, 253), Color.FromArgb(80, 250, 123),
+            Color.FromArgb(255, 184, 108), Color.FromArgb(189, 147, 249),
+            Color.FromArgb(255, 85, 85), Color.FromArgb(98, 216, 229),
+            Color.FromArgb(255, 121, 198), Color.FromArgb(241, 250, 140)
+        ]);
+
+    public static IReadOnlyList<AppTheme> All { get; } = [Light, Dark, Papirus, Nord, Dracula];
+
+    public static AppTheme Get(string? name) =>
+        All.FirstOrDefault(theme => theme.Name.Equals(name, StringComparison.OrdinalIgnoreCase)) ?? Light;
+}

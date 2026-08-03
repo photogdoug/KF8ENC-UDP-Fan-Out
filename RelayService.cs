@@ -45,6 +45,7 @@ internal sealed record RelaySnapshot(
     string ListenAddress,
     int ListenPort,
     bool Bidirectional,
+    string ThemeName,
     bool IsRunning,
     string Status,
     string? WsjtxSource,
@@ -62,6 +63,7 @@ internal sealed class RelayService : IDisposable
     private readonly List<string> _events = [];
     private IPEndPoint _listen = new(IPAddress.Loopback, 2236);
     private bool _bidirectional = true;
+    private string _themeName = AppThemes.Light.Name;
     private bool _isRunning;
     private string _status = "Ready";
     private string _lastPacket = "None";
@@ -114,6 +116,7 @@ internal sealed class RelayService : IDisposable
                 _listen.Address.ToString(),
                 _listen.Port,
                 _bidirectional,
+                _themeName,
                 _isRunning,
                 _status,
                 _learnedWsjtxSource?.ToString(),
@@ -243,6 +246,18 @@ internal sealed class RelayService : IDisposable
         return true;
     }
 
+    public void SetTheme(string themeName)
+    {
+        AppTheme theme = AppThemes.Get(themeName);
+        lock (_stateLock)
+        {
+            if (_themeName.Equals(theme.Name, StringComparison.Ordinal))
+                return;
+            _themeName = theme.Name;
+        }
+        SaveConfig();
+    }
+
     public bool AddTarget(string name, string addressText, int port, out string error)
     {
         if (!ValidateTarget(name, addressText, port, out IPEndPoint? endpoint, out error))
@@ -339,6 +354,7 @@ internal sealed class RelayService : IDisposable
 
         IPEndPoint listen = _listen;
         bool bidirectional = _bidirectional;
+        string themeName = _themeName;
         var loadedTargets = new List<RelayTarget>();
 
         try
@@ -359,6 +375,8 @@ internal sealed class RelayService : IDisposable
                     listen = endpoint;
                 else if (key == "bidirectional")
                     bidirectional = value.ToLowerInvariant() is "true" or "yes" or "1" or "on";
+                else if (key == "theme")
+                    themeName = AppThemes.Get(value).Name;
                 else if (key == "target")
                 {
                     int separator = value.LastIndexOf('|');
@@ -385,6 +403,7 @@ internal sealed class RelayService : IDisposable
         {
             _listen = listen;
             _bidirectional = bidirectional;
+            _themeName = themeName;
             _targets.Clear();
             _targets.AddRange(loadedTargets);
             _status = "Settings loaded";
@@ -403,6 +422,7 @@ internal sealed class RelayService : IDisposable
                 "# WSJT-X UDP Fanout configuration",
                 $"listen={_listen}",
                 $"bidirectional={_bidirectional.ToString().ToLowerInvariant()}",
+                $"theme={_themeName}",
                 "dashboard_ms=1000"
             };
             lines.AddRange(_targets.Select(target => $"target={target.Name}|{target.Endpoint}"));

@@ -17,6 +17,7 @@ internal sealed class MainForm : Form
     private readonly TextBox _listenAddress = new();
     private readonly NumericUpDown _listenPort = new();
     private readonly ComboBox _mode = new();
+    private readonly ComboBox _themeSelector = new();
     private readonly Button _startStopButton = new();
     private readonly Label _statusBadge = new();
     private readonly Label _wsjtxPackets = new();
@@ -35,6 +36,9 @@ internal sealed class MainForm : Form
     private readonly System.Windows.Forms.Timer _trafficTimer = new() { Interval = 1000 };
     private bool _allowClose;
     private bool _settingsInitialized;
+    private bool _themeInitialized;
+    private AppTheme _currentTheme = AppThemes.Light;
+    private readonly Dictionary<Control, ThemeBinding> _themeBindings = [];
 
     public MainForm(RelayService relay)
     {
@@ -48,8 +52,10 @@ internal sealed class MainForm : Form
         AutoScaleMode = AutoScaleMode.Dpi;
 
         BuildInterface();
+        CaptureThemeBindings(this, ThemeRole.Page);
         LoadSettingsFromSnapshot(_relay.GetSnapshot());
         _mode.SelectedIndexChanged += Mode_SelectedIndexChanged;
+        _themeSelector.SelectedIndexChanged += ThemeSelector_SelectedIndexChanged;
 
         Shown += MainForm_Shown;
         FormClosing += MainForm_FormClosing;
@@ -108,10 +114,35 @@ internal sealed class MainForm : Form
         _statusBadge.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
         _statusBadge.ForeColor = Color.White;
         _statusBadge.BackColor = Muted;
-        panel.Resize += (_, _) => _statusBadge.Left = panel.ClientSize.Width - _statusBadge.Width - 22;
+        var themeLabel = new Label
+        {
+            AutoSize = true,
+            Text = "THEME",
+            ForeColor = Color.FromArgb(202, 217, 232),
+            Font = new Font("Segoe UI Semibold", 7.5F, FontStyle.Bold)
+        };
+        _themeSelector.DropDownStyle = ComboBoxStyle.DropDownList;
+        _themeSelector.FlatStyle = FlatStyle.Flat;
+        ConfigureThemedCombo(_themeSelector);
+        _themeSelector.Items.AddRange(AppThemes.All.Select(theme => theme.Name).Cast<object>().ToArray());
+        _themeSelector.Size = new Size(130, 27);
+        _themeSelector.Font = new Font("Segoe UI", 9F);
+        _themeSelector.AccessibleName = "Application theme";
+        void PositionHeaderControls()
+        {
+            _statusBadge.Left = panel.ClientSize.Width - _statusBadge.Width - 22;
+            _themeSelector.Left = _statusBadge.Left - _themeSelector.Width - 18;
+            _themeSelector.Top = 31;
+            themeLabel.Left = _themeSelector.Left + 1;
+            themeLabel.Top = 13;
+        }
+        panel.Resize += (_, _) => PositionHeaderControls();
         panel.Controls.Add(title);
         panel.Controls.Add(subtitle);
+        panel.Controls.Add(themeLabel);
+        panel.Controls.Add(_themeSelector);
         panel.Controls.Add(_statusBadge);
+        PositionHeaderControls();
         return panel;
     }
 
@@ -158,6 +189,8 @@ internal sealed class MainForm : Form
         card.SetColumnSpan(_listenPort, 2);
 
         _mode.DropDownStyle = ComboBoxStyle.DropDownList;
+        _mode.FlatStyle = FlatStyle.Flat;
+        ConfigureThemedCombo(_mode);
         _mode.Items.AddRange(["Bidirectional", "Read only"]);
         _mode.Dock = DockStyle.Fill;
         _mode.Margin = new Padding(0, 5, 8, 4);
@@ -448,6 +481,17 @@ internal sealed class MainForm : Form
             out _);
     }
 
+    private void ThemeSelector_SelectedIndexChanged(object? sender, EventArgs e)
+    {
+        if (!_themeInitialized || _themeSelector.SelectedItem is not string themeName)
+            return;
+        AppTheme theme = AppThemes.Get(themeName);
+        _relay.SetTheme(theme.Name);
+        ApplyTheme(theme);
+        RefreshDashboard();
+        RefreshTrafficChart();
+    }
+
     private bool ApplySettings()
     {
         bool bidirectional = _mode.SelectedIndex != 1;
@@ -459,7 +503,7 @@ internal sealed class MainForm : Form
 
     private void AddDestination()
     {
-        using var dialog = new DestinationDialog("Add destination");
+        using var dialog = new DestinationDialog("Add destination", _currentTheme);
         if (dialog.ShowDialog(this) != DialogResult.OK)
             return;
         if (!_relay.AddTarget(dialog.DestinationName, dialog.Address, dialog.Port, out string error))
@@ -472,7 +516,7 @@ internal sealed class MainForm : Form
         TargetSnapshot? target = GetSelectedTarget();
         if (target is null)
             return;
-        using var dialog = new DestinationDialog("Edit destination", target.Name, target.Address, target.Port);
+        using var dialog = new DestinationDialog("Edit destination", _currentTheme, target.Name, target.Address, target.Port);
         if (dialog.ShowDialog(this) != DialogResult.OK)
             return;
         if (!_relay.UpdateTarget(target.Id, dialog.DestinationName, dialog.Address, dialog.Port, out string error))
@@ -508,7 +552,10 @@ internal sealed class MainForm : Form
         _listenAddress.Text = snapshot.ListenAddress;
         _listenPort.Value = snapshot.ListenPort;
         _mode.SelectedIndex = snapshot.Bidirectional ? 0 : 1;
+        _themeSelector.SelectedItem = AppThemes.Get(snapshot.ThemeName).Name;
         _settingsInitialized = true;
+        _themeInitialized = true;
+        ApplyTheme(AppThemes.Get(snapshot.ThemeName));
         RefreshDashboard();
     }
 
@@ -516,9 +563,9 @@ internal sealed class MainForm : Form
     {
         RelaySnapshot snapshot = _relay.GetSnapshot();
         _statusBadge.Text = snapshot.IsRunning ? "●  RUNNING" : "○  STOPPED";
-        _statusBadge.BackColor = snapshot.IsRunning ? Green : Color.FromArgb(100, 112, 124);
+        _statusBadge.BackColor = snapshot.IsRunning ? _currentTheme.Success : _currentTheme.SecondaryButton;
         _startStopButton.Text = snapshot.IsRunning ? "Stop relay" : "Start relay";
-        _startStopButton.BackColor = snapshot.IsRunning ? Red : Green;
+        _startStopButton.BackColor = snapshot.IsRunning ? _currentTheme.Danger : _currentTheme.Success;
         _listenAddress.Enabled = !snapshot.IsRunning;
         _listenPort.Enabled = !snapshot.IsRunning;
 
@@ -582,7 +629,7 @@ internal sealed class MainForm : Form
             {
                 AutoSize = true,
                 Text = text,
-                ForeColor = Color.FromArgb(70, 81, 93),
+                ForeColor = _currentTheme.MutedText,
                 Font = new Font("Segoe UI", 8F),
                 Location = new Point(15, 2)
             };
@@ -591,6 +638,140 @@ internal sealed class MainForm : Form
             _trafficLegend.Controls.Add(legendItem);
         }
         _trafficLegend.ResumeLayout();
+    }
+
+    private void ApplyTheme(AppTheme theme)
+    {
+        _currentTheme = theme;
+        SuspendLayout();
+        foreach ((Control control, ThemeBinding binding) in _themeBindings)
+        {
+            if (binding.Back != ThemeRole.None)
+                control.BackColor = ResolveThemeColor(theme, binding.Back);
+            if (binding.Fore != ThemeRole.None)
+                control.ForeColor = ResolveThemeColor(theme, binding.Fore);
+        }
+
+        _destinationGrid.BackgroundColor = theme.Surface;
+        _destinationGrid.GridColor = theme.Border;
+        _destinationGrid.ColumnHeadersDefaultCellStyle.BackColor = theme.GridHeader;
+        _destinationGrid.ColumnHeadersDefaultCellStyle.ForeColor = theme.MutedText;
+        _destinationGrid.DefaultCellStyle.BackColor = theme.Surface;
+        _destinationGrid.DefaultCellStyle.ForeColor = theme.Text;
+        _destinationGrid.DefaultCellStyle.SelectionBackColor = theme.Selection;
+        _destinationGrid.DefaultCellStyle.SelectionForeColor = theme.SelectionText;
+        _destinationGrid.AlternatingRowsDefaultCellStyle.BackColor = theme.SurfaceAlt;
+        _destinationGrid.AlternatingRowsDefaultCellStyle.ForeColor = theme.Text;
+        _trafficChart.ApplyTheme(theme);
+        ResumeLayout(true);
+        Invalidate(true);
+    }
+
+    private void CaptureThemeBindings(Control control, ThemeRole inheritedBack)
+    {
+        ThemeRole back = DetermineBackRole(control, inheritedBack);
+        ThemeRole fore = DetermineForeRole(control, back);
+        _themeBindings[control] = new ThemeBinding(back, fore);
+        ThemeRole childInherited = back == ThemeRole.None ? inheritedBack : back;
+        foreach (Control child in control.Controls)
+            CaptureThemeBindings(child, childInherited);
+    }
+
+    private static ThemeRole DetermineBackRole(Control control, ThemeRole inherited)
+    {
+        if (control is TextBoxBase or ComboBox or NumericUpDown)
+            return ThemeRole.Input;
+        if (control is Button)
+        {
+            if (control.BackColor.ToArgb() == Green.ToArgb()) return ThemeRole.Success;
+            if (control.BackColor.ToArgb() == Red.ToArgb()) return ThemeRole.Danger;
+            if (control.BackColor.ToArgb() == Blue.ToArgb()) return ThemeRole.Primary;
+            return ThemeRole.Secondary;
+        }
+
+        int color = control.BackColor.ToArgb();
+        if (color == Page.ToArgb()) return ThemeRole.Page;
+        if (color == Surface.ToArgb()) return ThemeRole.Surface;
+        if (color == Navy.ToArgb()) return ThemeRole.Header;
+        if (color == Color.FromArgb(248, 250, 252).ToArgb()) return ThemeRole.SurfaceAlt;
+        if (color == Color.FromArgb(230, 235, 240).ToArgb()) return ThemeRole.Footer;
+        if (color == Blue.ToArgb()) return ThemeRole.Primary;
+        if (color == Green.ToArgb()) return ThemeRole.Success;
+        if (color == Red.ToArgb()) return ThemeRole.Danger;
+        if (color == Color.FromArgb(218, 138, 38).ToArgb()) return ThemeRole.Warning;
+        if (color == Color.FromArgb(89, 103, 119).ToArgb()) return ThemeRole.Secondary;
+        if (control.BackColor == Color.Transparent) return ThemeRole.None;
+        if (control is Panel or TableLayoutPanel or FlowLayoutPanel or SplitContainer or SplitterPanel)
+            return inherited;
+        return ThemeRole.None;
+    }
+
+    private static ThemeRole DetermineForeRole(Control control, ThemeRole back)
+    {
+        if (control is TextBoxBase or ComboBox or NumericUpDown)
+            return ThemeRole.InputText;
+        if (control is Button)
+            return ThemeRole.OnAccent;
+        if (back == ThemeRole.Header)
+            return control.ForeColor.ToArgb() == Color.White.ToArgb() ? ThemeRole.HeaderText : ThemeRole.HeaderMuted;
+        if (control is Label or ListBox)
+        {
+            int color = control.ForeColor.ToArgb();
+            if (color == Color.White.ToArgb()) return ThemeRole.HeaderText;
+            if (color == Color.FromArgb(32, 43, 55).ToArgb() || color == Color.FromArgb(35, 45, 57).ToArgb())
+                return ThemeRole.Text;
+            return ThemeRole.MutedText;
+        }
+        return ThemeRole.None;
+    }
+
+    private static Color ResolveThemeColor(AppTheme theme, ThemeRole role) => role switch
+    {
+        ThemeRole.Page => theme.Page,
+        ThemeRole.Surface => theme.Surface,
+        ThemeRole.SurfaceAlt => theme.SurfaceAlt,
+        ThemeRole.Header => theme.Header,
+        ThemeRole.HeaderText => theme.HeaderText,
+        ThemeRole.HeaderMuted => theme.HeaderMuted,
+        ThemeRole.Text => theme.Text,
+        ThemeRole.MutedText => theme.MutedText,
+        ThemeRole.Input => theme.InputBackground,
+        ThemeRole.InputText => theme.InputText,
+        ThemeRole.Footer => theme.Footer,
+        ThemeRole.Primary => theme.Primary,
+        ThemeRole.Success => theme.Success,
+        ThemeRole.Danger => theme.Danger,
+        ThemeRole.Warning => theme.Warning,
+        ThemeRole.Secondary => theme.SecondaryButton,
+        ThemeRole.OnAccent => theme.HeaderText,
+        _ => Color.Transparent
+    };
+
+    private void ConfigureThemedCombo(ComboBox combo)
+    {
+        combo.DrawMode = DrawMode.OwnerDrawFixed;
+        combo.DrawItem += ThemedCombo_DrawItem;
+    }
+
+    private void ThemedCombo_DrawItem(object? sender, DrawItemEventArgs e)
+    {
+        if (sender is not ComboBox combo || e.Index < 0)
+            return;
+        bool editArea = (e.State & DrawItemState.ComboBoxEdit) != 0;
+        bool selected = (e.State & DrawItemState.Selected) != 0 && !editArea;
+        Color background = selected ? _currentTheme.Selection : _currentTheme.InputBackground;
+        Color foreground = selected ? _currentTheme.SelectionText : _currentTheme.InputText;
+        using var brush = new SolidBrush(background);
+        e.Graphics.FillRectangle(brush, e.Bounds);
+        TextRenderer.DrawText(
+            e.Graphics,
+            combo.GetItemText(combo.Items[e.Index]),
+            combo.Font,
+            new Rectangle(e.Bounds.X + 3, e.Bounds.Y, Math.Max(1, e.Bounds.Width - 6), e.Bounds.Height),
+            foreground,
+            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix);
+        if ((e.State & DrawItemState.Focus) != 0 && !editArea)
+            e.DrawFocusRectangle();
     }
 
     private static string FormatBytes(ulong bytes)
@@ -626,6 +807,15 @@ internal sealed class MainForm : Form
         button.Cursor = Cursors.Hand;
         button.UseVisualStyleBackColor = false;
     }
+
+    private enum ThemeRole
+    {
+        None, Page, Surface, SurfaceAlt, Header, HeaderText, HeaderMuted, Text,
+        MutedText, Input, InputText, Footer, Primary, Success, Danger, Warning,
+        Secondary, OnAccent
+    }
+
+    private readonly record struct ThemeBinding(ThemeRole Back, ThemeRole Fore);
 }
 
 internal sealed class DestinationDialog : Form
@@ -638,7 +828,7 @@ internal sealed class DestinationDialog : Form
     public string Address => _address.Text.Trim();
     public int Port => decimal.ToInt32(_port.Value);
 
-    public DestinationDialog(string title, string name = "", string address = "127.0.0.1", int port = 2237)
+    public DestinationDialog(string title, AppTheme theme, string name = "", string address = "127.0.0.1", int port = 2237)
     {
         Text = title;
         StartPosition = FormStartPosition.CenterParent;
@@ -647,10 +837,10 @@ internal sealed class DestinationDialog : Form
         MinimizeBox = false;
         ShowInTaskbar = false;
         ClientSize = new Size(420, 225);
-        BackColor = Color.White;
+        BackColor = theme.Surface;
         Font = new Font("Segoe UI", 9F);
 
-        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 4, Padding = new Padding(18, 16, 18, 14) };
+        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 4, Padding = new Padding(18, 16, 18, 14), BackColor = theme.Surface };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 92));
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
@@ -663,14 +853,15 @@ internal sealed class DestinationDialog : Form
         _port.Minimum = 1;
         _port.Maximum = 65535;
         _port.Value = Math.Clamp(port, 1, 65535);
-        AddDialogField(layout, "Name", _name, 0);
-        AddDialogField(layout, "Address", _address, 1);
-        AddDialogField(layout, "Port", _port, 2);
+        AddDialogField(layout, "Name", _name, 0, theme);
+        AddDialogField(layout, "Address", _address, 1, theme);
+        AddDialogField(layout, "Port", _port, 2, theme);
 
-        var buttons = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, WrapContents = false, Padding = new Padding(0, 10, 0, 0) };
-        var save = new Button { Text = "Save", DialogResult = DialogResult.OK, Width = 88, Height = 30, BackColor = Color.FromArgb(35, 103, 176), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+        var buttons = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, WrapContents = false, Padding = new Padding(0, 10, 0, 0), BackColor = theme.Surface };
+        var save = new Button { Text = "Save", DialogResult = DialogResult.OK, Width = 88, Height = 30, BackColor = theme.Primary, ForeColor = theme.HeaderText, FlatStyle = FlatStyle.Flat, UseVisualStyleBackColor = false };
         save.FlatAppearance.BorderSize = 0;
-        var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Width = 88, Height = 30, Margin = new Padding(8, 0, 0, 0) };
+        var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Width = 88, Height = 30, Margin = new Padding(8, 0, 0, 0), BackColor = theme.SecondaryButton, ForeColor = theme.HeaderText, FlatStyle = FlatStyle.Flat, UseVisualStyleBackColor = false };
+        cancel.FlatAppearance.BorderSize = 0;
         buttons.Controls.Add(save);
         buttons.Controls.Add(cancel);
         layout.Controls.Add(buttons, 0, 3);
@@ -687,9 +878,11 @@ internal sealed class DestinationDialog : Form
         _name.SelectAll();
     }
 
-    private static void AddDialogField(TableLayoutPanel layout, string labelText, Control control, int row)
+    private static void AddDialogField(TableLayoutPanel layout, string labelText, Control control, int row, AppTheme theme)
     {
-        var label = new Label { Text = labelText, AutoSize = true, Anchor = AnchorStyles.Left, ForeColor = Color.FromArgb(70, 80, 92) };
+        var label = new Label { Text = labelText, AutoSize = true, Anchor = AnchorStyles.Left, ForeColor = theme.MutedText };
+        control.BackColor = theme.InputBackground;
+        control.ForeColor = theme.InputText;
         control.Dock = DockStyle.Fill;
         control.Margin = new Padding(0, 6, 0, 6);
         layout.Controls.Add(label, 0, row);
