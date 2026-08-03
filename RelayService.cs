@@ -151,6 +151,10 @@ internal sealed class RelayService : IDisposable
             try
             {
                 socket.Bind(_listen);
+                // Windows reports ICMP "port unreachable" responses as WSAECONNRESET on a
+                // UDP receive unless SIO_UDP_CONNRESET is disabled. A companion app being
+                // closed must not stop the relay for every other destination.
+                socket.IOControl(unchecked((int)0x9800000C), [0, 0, 0, 0], null);
             }
             catch (SocketException ex)
             {
@@ -430,11 +434,24 @@ internal sealed class RelayService : IDisposable
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                SocketReceiveFromResult result = await socket.ReceiveFromAsync(
-                    buffer,
-                    SocketFlags.None,
-                    new IPEndPoint(IPAddress.Any, 0),
-                    cancellationToken).ConfigureAwait(false);
+                SocketReceiveFromResult result;
+                try
+                {
+                    result = await socket.ReceiveFromAsync(
+                        buffer,
+                        SocketFlags.None,
+                        new IPEndPoint(IPAddress.Any, 0),
+                        cancellationToken).ConfigureAwait(false);
+                }
+                catch (SocketException ex) when (!cancellationToken.IsCancellationRequested)
+                {
+                    lock (_stateLock)
+                    {
+                        _status = $"Receive warning: {ex.SocketErrorCode}";
+                        AddEventLocked(_status);
+                    }
+                    continue;
+                }
 
                 if (result.RemoteEndPoint is not IPEndPoint from)
                     continue;
@@ -497,14 +514,6 @@ internal sealed class RelayService : IDisposable
         }
         catch (ObjectDisposedException) when (cancellationToken.IsCancellationRequested)
         {
-        }
-        catch (SocketException ex)
-        {
-            lock (_stateLock)
-            {
-                _status = $"Network error: {ex.SocketErrorCode}";
-                AddEventLocked(_status);
-            }
         }
         finally
         {
@@ -754,7 +763,7 @@ internal sealed class RelayService : IDisposable
     private void AddDefaultTargetsLocked()
     {
         _targets.Add(new RelayTarget("GridTracker", new IPEndPoint(IPAddress.Loopback, 2237)));
-        _targets.Add(new RelayTarget("Hamilton Auto FT8", new IPEndPoint(IPAddress.Loopback, 2238)));
+        _targets.Add(new RelayTarget("JTSync", new IPEndPoint(IPAddress.Loopback, 2238)));
         _targets.Add(new RelayTarget("WRL CAT Control", new IPEndPoint(IPAddress.Loopback, 2239)));
     }
 

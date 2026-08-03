@@ -7,7 +7,7 @@ Default flow:
 ```text
 WSJT-X -> 127.0.0.1:2236 -> WsjtxUdpFanout.exe
                               -> GridTracker       127.0.0.1:2237
-                              -> Logger            127.0.0.1:2238
+                              -> JTSync            127.0.0.1:2238
                               -> WRL CAT Control   127.0.0.1:2239
 ```
 
@@ -17,7 +17,7 @@ The relay is bidirectional by default. It learns the WSJT-X UDP source socket fr
 
 Choose the interface that best fits your setup:
 
-- [Windows GUI v2.0 installer](downloads/WsjtxUdpFanout-Windows-GUI-v2.0.0-Setup.exe) — Recommended. Standard Windows dashboard with destination management, live statistics, and no command-prompt window.
+- [Windows GUI v2.0.1 installer](downloads/WsjtxUdpFanout-Windows-GUI-v2.0.1-Setup.exe) — Recommended. Standard Windows dashboard with destination management, live statistics, and no command-prompt window.
 - [Console v1.3 installer](downloads/WsjtxUdpFanout-Console-v1.3.0-Setup.exe) — Original command-prompt dashboard with typed management commands.
 
 Both installers are self-contained 64-bit Windows packages; the destination computer does not need the .NET runtime installed.
@@ -46,6 +46,14 @@ The application opens as a standard Windows desktop window—there is no command
 - Clear traffic statistics.
 
 Destination and listener changes are saved automatically.
+
+### Dashboard
+
+![WSJT-X UDP Fanout Windows dashboard showing live traffic statistics and the default destinations](docs/images/windows-dashboard.png)
+
+### Destination Editor
+
+![Add destination dialog with name, address, and port fields](docs/images/destination-editor.png)
 
 Changes are saved to:
 
