@@ -1,0 +1,34 @@
+name: Publish release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+
+      - name: Publish installer release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          installer="downloads/WsjtxUdpFanout-Windows-GUI-v${version}-Setup.exe"
+          notes="docs/release-notes/v${version}.md"
+
+          test -f "$installer"
+          test -f "$notes"
+
+          gh release create "$GITHUB_REF_NAME" \
+            "$installer#WsjtxUdpFanout-Windows-GUI-v${version}-Setup.exe" \
+            --verify-tag \
+            --title "WSJT-X UDP Fanout GUI v${version}" \
+            --notes-file "$notes"
