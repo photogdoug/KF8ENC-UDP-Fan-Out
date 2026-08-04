@@ -61,7 +61,7 @@ internal sealed class RelayService : IDisposable
     private readonly object _stateLock = new();
     private readonly List<RelayTarget> _targets = [];
     private readonly List<string> _events = [];
-    private IPEndPoint _listen = new(IPAddress.Loopback, 2236);
+    private IPEndPoint _listen = new(IPAddress.Loopback, 2237);
     private bool _bidirectional = true;
     private string _themeName = AppThemes.Light.Name;
     private bool _isRunning;
@@ -782,9 +782,9 @@ internal sealed class RelayService : IDisposable
 
     private void AddDefaultTargetsLocked()
     {
-        _targets.Add(new RelayTarget("GridTracker", new IPEndPoint(IPAddress.Loopback, 2237)));
+        _targets.Add(new RelayTarget("GridTracker", new IPEndPoint(IPAddress.Loopback, 2239)));
         _targets.Add(new RelayTarget("JTSync", new IPEndPoint(IPAddress.Loopback, 2238)));
-        _targets.Add(new RelayTarget("WRL CAT Control", new IPEndPoint(IPAddress.Loopback, 2239)));
+        _targets.Add(new RelayTarget("WRL CAT Control", new IPEndPoint(IPAddress.Loopback, 2240)));
     }
 
     private void AddEventLocked(string message)

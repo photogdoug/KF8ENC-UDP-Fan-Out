@@ -827,7 +827,7 @@ internal sealed class DestinationDialog : Form
     public string Address => _address.Text.Trim();
     public int Port => int.TryParse(_port.Text.Trim(), out int port) ? port : 0;
 
-    public DestinationDialog(string title, AppTheme theme, string name = "", string address = "127.0.0.1", int port = 2237)
+    public DestinationDialog(string title, AppTheme theme, string name = "", string address = "127.0.0.1", int port = 2241)
     {
         Text = title;
         StartPosition = FormStartPosition.CenterParent;
