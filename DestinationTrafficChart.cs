@@ -7,9 +7,11 @@ internal sealed record TrafficLegendItem(string Name, Color Color, double Packet
 internal sealed class DestinationTrafficChart : Control
 {
     private const int MaximumSamples = 60;
-    private readonly Dictionary<Guid, TrafficSeries> _series = [];
+    private static readonly Color TotalTrafficBlue = Color.FromArgb(30, 144, 255);
+    private readonly Queue<double> _samples = new();
     private AppTheme _theme = AppThemes.Light;
-    private int _nextColorIndex;
+    private ulong _lastPackets;
+    private bool _hasBaseline;
 
     public DestinationTrafficChart()
     {
@@ -17,52 +19,30 @@ internal sealed class DestinationTrafficChart : Control
         ResizeRedraw = true;
         BackColor = Color.White;
         ForeColor = Color.FromArgb(55, 66, 78);
-        AccessibleName = "Destination traffic over the last 60 seconds";
+        AccessibleName = "Total packet traffic over the last 60 seconds";
         SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
     }
 
-    public IReadOnlyList<TrafficLegendItem> LegendItems => _series.Values
-        .Select(series => new TrafficLegendItem(series.Name, series.Color, series.Samples.LastOrDefault()))
-        .ToList();
-
-    public Color GetSeriesColor(Guid id) => _series.TryGetValue(id, out TrafficSeries? series)
-        ? series.Color
-        : _theme.MutedText;
+    public TrafficLegendItem LegendItem => new("All packets", TotalTrafficBlue, _samples.LastOrDefault());
 
     public void ApplyTheme(AppTheme theme)
     {
         _theme = theme;
         BackColor = theme.Surface;
         ForeColor = theme.Text;
-        int index = 0;
-        foreach (TrafficSeries series in _series.Values)
-            series.Color = GetSeriesColor(index++);
         Invalidate();
     }
 
-    public void Sample(IReadOnlyList<TargetSnapshot> targets)
+    public void Sample(ulong totalPackets)
     {
-        HashSet<Guid> activeIds = targets.Select(target => target.Id).ToHashSet();
-        foreach (Guid removedId in _series.Keys.Where(id => !activeIds.Contains(id)).ToList())
-            _series.Remove(removedId);
-
-        foreach (TargetSnapshot target in targets)
-        {
-            if (!_series.TryGetValue(target.Id, out TrafficSeries? series))
-            {
-                series = new TrafficSeries(target.Name, NextColor(), target.Packets);
-                _series.Add(target.Id, series);
-            }
-
-            series.Name = target.Name;
-            ulong packetDelta = target.Packets >= series.LastPackets
-                ? target.Packets - series.LastPackets
-                : target.Packets;
-            series.LastPackets = target.Packets;
-            series.Samples.Enqueue(packetDelta);
-            while (series.Samples.Count > MaximumSamples)
-                series.Samples.Dequeue();
-        }
+        ulong packetDelta = _hasBaseline && totalPackets >= _lastPackets
+            ? totalPackets - _lastPackets
+            : 0;
+        _lastPackets = totalPackets;
+        _hasBaseline = true;
+        _samples.Enqueue(packetDelta);
+        while (_samples.Count > MaximumSamples)
+            _samples.Dequeue();
 
         Invalidate();
     }
@@ -81,21 +61,10 @@ internal sealed class DestinationTrafficChart : Control
         if (plot.Width < 20 || plot.Height < 20)
             return;
 
-        TrafficSeries[] orderedSeries = _series.Values.ToArray();
-        var plottedValues = new double[orderedSeries.Length][];
-        var totals = new double[MaximumSamples];
-        for (int seriesIndex = 0; seriesIndex < orderedSeries.Length; seriesIndex++)
-        {
-            plottedValues[seriesIndex] = new double[MaximumSamples];
-            double[] samples = orderedSeries[seriesIndex].Samples.ToArray();
-            int startIndex = MaximumSamples - samples.Length;
-            for (int index = 0; index < samples.Length; index++)
-            {
-                plottedValues[seriesIndex][startIndex + index] = samples[index];
-                totals[startIndex + index] += samples[index];
-            }
-        }
-        double yMaximum = NiceMaximum(Math.Max(5, totals.DefaultIfEmpty(0).Max()));
+        var plottedValues = new double[MaximumSamples];
+        double[] samples = _samples.ToArray();
+        Array.Copy(samples, 0, plottedValues, MaximumSamples - samples.Length, samples.Length);
+        double yMaximum = NiceMaximum(Math.Max(5, plottedValues.Max()));
 
         using var gridPen = new Pen(_theme.ChartGrid, 1);
         using var axisPen = new Pen(_theme.ChartAxis, 1);
@@ -127,7 +96,7 @@ internal sealed class DestinationTrafficChart : Control
         e.Graphics.DrawLine(axisPen, plot.Left, plot.Bottom, plot.Right, plot.Bottom);
         e.Graphics.DrawLine(axisPen, plot.Left, plot.Top, plot.Left, plot.Bottom);
 
-        if (_series.Count == 0 || _series.Values.All(series => series.Samples.Count < 2))
+        if (_samples.Count < 2)
         {
             const string message = "Traffic history will appear here as packets arrive.";
             SizeF size = e.Graphics.MeasureString(message, emptyFont);
@@ -137,69 +106,19 @@ internal sealed class DestinationTrafficChart : Control
             return;
         }
 
-        var cumulative = new double[MaximumSamples];
-        for (int seriesIndex = 0; seriesIndex < orderedSeries.Length; seriesIndex++)
+        var points = new PointF[MaximumSamples];
+        for (int index = 0; index < MaximumSamples; index++)
         {
-            TrafficSeries series = orderedSeries[seriesIndex];
-            double[] values = plottedValues[seriesIndex];
-            var topPoints = new PointF[MaximumSamples];
-            var bottomPoints = new PointF[MaximumSamples];
-            for (int index = 0; index < MaximumSamples; index++)
-            {
-                float x = plot.Left + plot.Width * index / (MaximumSamples - 1f);
-                bottomPoints[index] = new PointF(
-                    x,
-                    plot.Bottom - (float)(Math.Min(cumulative[index], yMaximum) / yMaximum * plot.Height));
-                cumulative[index] += values[index];
-                topPoints[index] = new PointF(
-                    x,
-                    plot.Bottom - (float)(Math.Min(cumulative[index], yMaximum) / yMaximum * plot.Height));
-            }
-
-            PointF[] areaPoints = [.. topPoints, .. bottomPoints.Reverse()];
-            using var areaBrush = new SolidBrush(Color.FromArgb(72, series.Color));
-            using var linePen = new Pen(series.Color, 1.8F) { LineJoin = LineJoin.Round };
-            e.Graphics.FillPolygon(areaBrush, areaPoints);
-            e.Graphics.DrawLines(linePen, topPoints);
-            PointF lastPoint = topPoints[^1];
-            using var markerBrush = new SolidBrush(series.Color);
-            e.Graphics.FillEllipse(markerBrush, lastPoint.X - 3.5F, lastPoint.Y - 3.5F, 7, 7);
+            float x = plot.Left + plot.Width * index / (MaximumSamples - 1f);
+            points[index] = new PointF(
+                x,
+                plot.Bottom - (float)(Math.Min(plottedValues[index], yMaximum) / yMaximum * plot.Height));
         }
-    }
-
-    private Color NextColor()
-    {
-        Color color = GetSeriesColor(_nextColorIndex);
-        _nextColorIndex++;
-        return color;
-    }
-
-    private Color GetSeriesColor(int index)
-    {
-        if (index < _theme.SeriesColors.Count)
-            return _theme.SeriesColors[index];
-
-        double hue = (index * 137.508) % 360;
-        return ColorFromHsv(hue, 0.62, _theme.Name == "Light" ? 0.68 : 0.88);
-    }
-
-    private static Color ColorFromHsv(double hue, double saturation, double value)
-    {
-        int sector = (int)Math.Floor(hue / 60) % 6;
-        double fraction = hue / 60 - Math.Floor(hue / 60);
-        double p = value * (1 - saturation);
-        double q = value * (1 - fraction * saturation);
-        double t = value * (1 - (1 - fraction) * saturation);
-        (double r, double g, double b) = sector switch
-        {
-            0 => (value, t, p),
-            1 => (q, value, p),
-            2 => (p, value, t),
-            3 => (p, q, value),
-            4 => (t, p, value),
-            _ => (value, p, q)
-        };
-        return Color.FromArgb((int)(r * 255), (int)(g * 255), (int)(b * 255));
+        using var linePen = new Pen(TotalTrafficBlue, 2.2F) { LineJoin = LineJoin.Round };
+        e.Graphics.DrawLines(linePen, points);
+        PointF lastPoint = points[^1];
+        using var markerBrush = new SolidBrush(TotalTrafficBlue);
+        e.Graphics.FillEllipse(markerBrush, lastPoint.X - 3.5F, lastPoint.Y - 3.5F, 7, 7);
     }
 
     private static double NiceMaximum(double maximum)
@@ -208,13 +127,5 @@ internal sealed class DestinationTrafficChart : Control
         double normalized = maximum / magnitude;
         double nice = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
         return nice * magnitude;
-    }
-
-    private sealed class TrafficSeries(string name, Color color, ulong lastPackets)
-    {
-        public string Name { get; set; } = name;
-        public Color Color { get; set; } = color;
-        public ulong LastPackets { get; set; } = lastPackets;
-        public Queue<double> Samples { get; } = new();
     }
 }

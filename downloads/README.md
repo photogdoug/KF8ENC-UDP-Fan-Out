@@ -1,12 +1,12 @@
 # Installer Options
 
-## Windows GUI v2.2.0 — Recommended
+## Windows GUI v2.3.0 — Recommended
 
-[`WsjtxUdpFanout-Windows-GUI-v2.2.0-Setup.exe`](WsjtxUdpFanout-Windows-GUI-v2.2.0-Setup.exe)
+[`WsjtxUdpFanout-Windows-GUI-v2.3.0-Setup.exe`](WsjtxUdpFanout-Windows-GUI-v2.3.0-Setup.exe)
 
-The current Windows desktop application. It provides Start/Stop controls, destination editing, traffic statistics, WSJT-X source status, recent activity, and five selectable color themes without opening a command-prompt window.
+The current Windows desktop application. It provides Start/Stop controls, destination editing, aggregate traffic statistics, a single total-packet traffic graph, WSJT-X source status, recent activity, and five selectable color themes without opening a command-prompt window.
 
-SHA-256: `53368472FB39D976CFEE3C693AEDB34A9441F20ECE0DFDF56DE4CA7B28BE360C`
+SHA-256: `B3451A140EF7FCD68FBD39D2A81C38D3335B0BBA058F947AF7D61B12C3E707BE`
 
 ## Console v1.3 — Classic
 

@@ -43,7 +43,7 @@ internal sealed class MainForm : Form
     public MainForm(RelayService relay)
     {
         _relay = relay;
-        Text = "WSJT-X UDP Fanout";
+        Text = "WSJT-X UDP Fanout by KF8ENC";
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(960, 720);
         ClientSize = new Size(1180, 880);
@@ -93,7 +93,7 @@ internal sealed class MainForm : Form
         var title = new Label
         {
             AutoSize = true,
-            Text = "WSJT-X UDP Fanout",
+            Text = "WSJT-X UDP Fanout by KF8ENC",
             ForeColor = Color.White,
             Font = new Font("Segoe UI Semibold", 18F, FontStyle.Bold),
             Location = new Point(20, 10)
@@ -318,7 +318,7 @@ internal sealed class MainForm : Form
         var chartHeading = new Label
         {
             AutoSize = true,
-            Text = "Destination traffic  ·  packets/second  ·  last 60 seconds",
+            Text = "Total traffic  ·  packets/second  ·  last 60 seconds",
             Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold),
             ForeColor = Color.FromArgb(55, 66, 78),
             Margin = new Padding(0, 6, 0, 0)
@@ -604,39 +604,38 @@ internal sealed class MainForm : Form
     private void RefreshTrafficChart()
     {
         RelaySnapshot snapshot = _relay.GetSnapshot();
-        _trafficChart.Sample(snapshot.Targets);
+        ulong totalPackets = snapshot.Counters.WsjtxToAppsPackets + snapshot.Counters.AppsToWsjtxPackets;
+        _trafficChart.Sample(totalPackets);
 
         _trafficLegend.SuspendLayout();
         _trafficLegend.Controls.Clear();
-        foreach (TrafficLegendItem item in _trafficChart.LegendItems)
+        TrafficLegendItem item = _trafficChart.LegendItem;
+        string text = $"{item.Name}  {item.PacketsPerSecond:N0} pkt/s";
+        Size textSize = TextRenderer.MeasureText(text, Font);
+        var legendItem = new Panel
         {
-            string text = $"{item.Name}  {item.PacketsPerSecond:N0} pkt/s";
-            Size textSize = TextRenderer.MeasureText(text, Font);
-            var legendItem = new Panel
-            {
-                Width = textSize.Width + 24,
-                Height = 22,
-                Margin = new Padding(0, 0, 12, 0),
-                BackColor = Color.Transparent
-            };
-            var swatch = new Panel
-            {
-                BackColor = item.Color,
-                Size = new Size(10, 10),
-                Location = new Point(0, 5)
-            };
-            var label = new Label
-            {
-                AutoSize = true,
-                Text = text,
-                ForeColor = _currentTheme.MutedText,
-                Font = new Font("Segoe UI", 8F),
-                Location = new Point(15, 2)
-            };
-            legendItem.Controls.Add(swatch);
-            legendItem.Controls.Add(label);
-            _trafficLegend.Controls.Add(legendItem);
-        }
+            Width = textSize.Width + 24,
+            Height = 22,
+            Margin = new Padding(0, 0, 12, 0),
+            BackColor = Color.Transparent
+        };
+        var swatch = new Panel
+        {
+            BackColor = item.Color,
+            Size = new Size(10, 10),
+            Location = new Point(0, 5)
+        };
+        var label = new Label
+        {
+            AutoSize = true,
+            Text = text,
+            ForeColor = _currentTheme.MutedText,
+            Font = new Font("Segoe UI", 8F),
+            Location = new Point(15, 2)
+        };
+        legendItem.Controls.Add(swatch);
+        legendItem.Controls.Add(label);
+        _trafficLegend.Controls.Add(legendItem);
         _trafficLegend.ResumeLayout();
     }
 
@@ -822,11 +821,11 @@ internal sealed class DestinationDialog : Form
 {
     private readonly TextBox _name = new();
     private readonly TextBox _address = new();
-    private readonly NumericUpDown _port = new();
+    private readonly TextBox _port = new();
 
     public string DestinationName => _name.Text.Trim();
     public string Address => _address.Text.Trim();
-    public int Port => decimal.ToInt32(_port.Value);
+    public int Port => int.TryParse(_port.Text.Trim(), out int port) ? port : 0;
 
     public DestinationDialog(string title, AppTheme theme, string name = "", string address = "127.0.0.1", int port = 2237)
     {
@@ -850,16 +849,31 @@ internal sealed class DestinationDialog : Form
 
         _name.Text = name;
         _address.Text = address;
-        _port.Minimum = 1;
-        _port.Maximum = 65535;
-        _port.Value = Math.Clamp(port, 1, 65535);
+        _port.Text = Math.Clamp(port, 1, 65535).ToString();
+        _port.MaxLength = 5;
+        _port.KeyPress += (_, args) =>
+        {
+            if (!char.IsControl(args.KeyChar) && !char.IsDigit(args.KeyChar))
+                args.Handled = true;
+        };
         AddDialogField(layout, "Name", _name, 0, theme);
         AddDialogField(layout, "Address", _address, 1, theme);
         AddDialogField(layout, "Port", _port, 2, theme);
 
         var buttons = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, WrapContents = false, Padding = new Padding(0, 10, 0, 0), BackColor = theme.Surface };
-        var save = new Button { Text = "Save", DialogResult = DialogResult.OK, Width = 88, Height = 30, BackColor = theme.Primary, ForeColor = theme.HeaderText, FlatStyle = FlatStyle.Flat, UseVisualStyleBackColor = false };
+        var save = new Button { Text = "Save", Width = 88, Height = 30, BackColor = theme.Primary, ForeColor = theme.HeaderText, FlatStyle = FlatStyle.Flat, UseVisualStyleBackColor = false };
         save.FlatAppearance.BorderSize = 0;
+        save.Click += (_, _) =>
+        {
+            if (!int.TryParse(_port.Text.Trim(), out int enteredPort) || enteredPort is < 1 or > 65535)
+            {
+                MessageBox.Show(this, "Enter a port number between 1 and 65535.", "Invalid port", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                _port.Focus();
+                _port.SelectAll();
+                return;
+            }
+            DialogResult = DialogResult.OK;
+        };
         var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Width = 88, Height = 30, Margin = new Padding(8, 0, 0, 0), BackColor = theme.SecondaryButton, ForeColor = theme.HeaderText, FlatStyle = FlatStyle.Flat, UseVisualStyleBackColor = false };
         cancel.FlatAppearance.BorderSize = 0;
         buttons.Controls.Add(save);
