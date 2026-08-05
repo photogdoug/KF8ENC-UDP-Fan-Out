@@ -1,5 +1,6 @@
 # WSJT-X UDP Fanout
 
+<img src="banner.png" width="800" alt="KF8ENC UDP FANOUT">
 Windows desktop UDP relay for WSJT-X companion programs.
 
 Default flow:
